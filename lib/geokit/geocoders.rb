@@ -44,6 +44,7 @@ module Geokit
     @@ssl_verify_mode = OpenSSL::SSL::VERIFY_PEER
     @@query_cache = false
     @@query_cache_max_age = 60*60*24*5 # 5 days
+    @@query_cache_directory = '/tmp'
 
     def self.__define_accessors
       class_variables.each do |v|
@@ -111,7 +112,9 @@ module Geokit
       end
 
       def self.query_cache
-        @_query_cacher ||= Geokit::QueryCache::DiskFetcher.new
+        @_query_cacher ||= Geokit::QueryCache::DiskFetcher.new(
+          Geokit::Geocoders.query_cache_directory
+        )
       end
 
       private
