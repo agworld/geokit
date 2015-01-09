@@ -39,10 +39,7 @@ module Geokit
     @@logger = Logger.new(STDOUT)
     @@logger.level = Logger::INFO
     @@domain = nil
-    @@net_adapter = Geokit::NetAdapter::NetHttp
-    @@secure = true
-    @@ssl_verify_mode = OpenSSL::SSL::VERIFY_PEER
-
+    
     def self.__define_accessors
       class_variables.each do |v|
         sym = v.to_s.delete('@').to_sym
@@ -158,8 +155,17 @@ module Geokit
       end
 
       # Wraps the geocoder call around a proxy if necessary.
-      def self.do_get(url)
+      def self.do_http_get(url)
         net_adapter.do_get(url)
+      end
+
+      def self.do_get(url) 
+        if GeoKit::Geocoders::query_cache
+          max_age = GeoKit::Geocoders::query_cache_max_age || 86400
+          self.query_cache.do_cache_request(url, max_age) { self.do_http_get(url) }
+        else
+          self.do_http_get(url)
+        end
       end
 
       def self.net_adapter

@@ -120,6 +120,20 @@ If you're using this gem by itself, here are the configuration options:
     # and password can be provided as well.
     Geokit::Geocoders::proxy = 'https://user:password@host:port'
 
+		# This enables a simple Query Cache mechanism that caches all outgoing 
+		# API calls to disk using a simplified serialization (marshaling/loading) 
+		# process adapted from the techniques described on the Yahoo Developer 
+		# Network article, "Cache Yahoo! Web Service Calls using Ruby":
+		# 
+		# http://developer.yahoo.com/ruby/ruby-cache.html
+		#
+		# Note: /tmp must be writable in order to use the query caching 
+		# functionality.
+		# 
+		# Disabled by default.  To enable the query_cache, set to true.
+		Geokit::Geocoders::query_cache         = nil
+		Geokit::Geocoders::query_cache_max_age = nil # 86400 # 1 day in seconds
+
     # This is your yahoo application key for the Yahoo Geocoder.
     # See http://developer.yahoo.com/faq/index.html#appid
     # and http://developer.yahoo.com/maps/rest/V1/geocode.html
@@ -276,6 +290,34 @@ geo.all is just an array of additional Geolocs, so do what you want with it. If 
 geoloc that doesn't have any additional results, you will get  an array of one.
 
 
+## CACHING QUERIES
+
+Geokit can cache queries using a simple Query Cache mechanism as described in 
+Yahoo Developer Network article [Cache Yahoo! Web Service Calls using Ruby](http://developer.yahoo.com/ruby/ruby-cache.html). 
+Note that the code has been adopted and modified to support a range of query 
+caching mechanisms.
+
+If the query cache is turned on, all calls to any geocoding API will be 
+serialized to disk in the /tmp directory, based on URL.  So, for example, if 
+an attempt to geocode "San Francisco, CA" results in the geocoding url of:
+
+    http://some.geocoding-api.com/?geocode=San+Francisco,+CA
+  
+The query cache will first hit the URL and then store the contents of the full 
+Net:HTTP result on disk with the MD5 hash of the url:
+
+    /tmp/575ffc9b9f1142bd6dbab2d19560c30c
+  
+Subsequent calls to geocode the "San Francisco, CA" will simply load the 
+serialized data from disk, resulting in no outbound HTTP request.
+
+To enable the query cache, set the query cache option to true, and choose a 
+sensible query cache max age to re-query the cache:
+
+    Geokit::Geocoders::query_cache         = true
+    Geokit::Geocoders::query_cache_max_age = 86400 # 1 day in seconds
+
+
 ## NOTES ON WHAT'S WHERE
 
 mappable.rb contains the Mappable module, which provides basic
@@ -292,9 +334,13 @@ has been geocoded. You can get the city, zipcode, street address, etc.
 from a GeoLoc object. GeoLoc extends LatLng, so you also get lat/lng
 AND the Mappable module goodness for free.
 
-geocoders.rb contains all the geocoder implemenations. All the gercoders
+geocoders.rb contains all the geocoder implemenations. All the gercoders 
 inherit from a common base (class Geocoder) and implement the private method
 do_geocode.
+
+query_cache.rb contains the mechanism for query caching.  It includes a disk
+caching mechanism by default, that must be enabled through settings.  It is 
+not used by default.
 
 ## WRITING YOUR OWN GEOCODERS
 
