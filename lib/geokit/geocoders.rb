@@ -39,7 +39,12 @@ module Geokit
     @@logger = Logger.new(STDOUT)
     @@logger.level = Logger::INFO
     @@domain = nil
-    
+    @@net_adapter = Geokit::NetAdapter::NetHttp
+    @@secure = true
+    @@ssl_verify_mode = OpenSSL::SSL::VERIFY_PEER
+    @@query_cache = false
+    @@query_cache_max_age = 60*60*24*5 # 5 days
+
     def self.__define_accessors
       class_variables.each do |v|
         sym = v.to_s.delete('@').to_sym
@@ -105,6 +110,10 @@ module Geokit
         Geokit::Geocoders.logger
       end
 
+      def self.query_cache
+        @_query_cacher ||= Geokit::QueryCache::DiskFetcher.new
+      end
+
       private
 
       def self.config(*attrs)
@@ -159,9 +168,9 @@ module Geokit
         net_adapter.do_get(url)
       end
 
-      def self.do_get(url) 
-        if GeoKit::Geocoders::query_cache
-          max_age = GeoKit::Geocoders::query_cache_max_age || 86400
+      def self.do_get(url)
+        if Geokit::Geocoders.query_cache == true
+          max_age = Geokit::Geocoders.query_cache_max_age || 86400
           self.query_cache.do_cache_request(url, max_age) { self.do_http_get(url) }
         else
           self.do_http_get(url)
