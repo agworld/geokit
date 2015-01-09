@@ -27,7 +27,7 @@ module Geokit
       # Marshals the entire return object to disk to allow drop-in
       # replacement for Net::HTTP request calls.
       #
-      def do_cache_request(url, max_age=0, &block)
+      def do_cache_request(url, max_age=0, limit_to_cached=false, &block)
         file_part = Digest::MD5.hexdigest(url)
         file_path = File.join(@cache_dir, file_part)
         file_contents = ""
@@ -40,9 +40,13 @@ module Geokit
             return Marshal.load(data)
           end
         end
+
+        # if we have no cache and require one, raise
+        raise "Geocoding cache miss in limited mode" if limit_to_cached
+
         # If the file does not exist (or if the data is not fresh),
         # make an HTTP request and save it to a file
-        File.open(file_path, "w") do |file|
+        File.open(file_path, "wb") do |file|
           file_contents = block.call() if block_given?
           file << Marshal.dump(file_contents)
         end

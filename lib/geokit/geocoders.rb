@@ -43,6 +43,7 @@ module Geokit
     @@secure = true
     @@ssl_verify_mode = OpenSSL::SSL::VERIFY_PEER
     @@query_cache = false
+    @@query_cache_limit_to_cache = false
     @@query_cache_max_age = 60*60*24*5 # 5 days
     @@query_cache_directory = '/tmp'
 
@@ -172,9 +173,13 @@ module Geokit
       end
 
       def self.do_get(url)
-        if Geokit::Geocoders.query_cache == true
+        if Geokit::Geocoders.query_cache
           max_age = Geokit::Geocoders.query_cache_max_age || 86400
-          self.query_cache.do_cache_request(url, max_age) { self.do_http_get(url) }
+          only_cached = Geokit::Geocoders.query_cache_limit_to_cache
+
+          self.query_cache.do_cache_request(url, max_age, only_cached) do
+            self.do_http_get(url)
+          end
         else
           self.do_http_get(url)
         end
