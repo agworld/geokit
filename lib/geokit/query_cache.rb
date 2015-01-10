@@ -1,5 +1,4 @@
 require 'digest'
-require 'byebug'
 
 module Geokit
 
